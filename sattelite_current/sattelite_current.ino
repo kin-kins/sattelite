@@ -1,4 +1,4 @@
-///÷Æ÷
+
 #include<Wire.h>
 #include <SFE_BMP180.h>
 #include <SD.h> //Load SD library
