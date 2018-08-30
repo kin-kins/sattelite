@@ -1,46 +1,51 @@
 
+#include <SPI.h>
+#include <SD.h>
 #include<Wire.h>
 #include <SFE_BMP180.h>
-#include <SD.h> //Load SD library
-int chipSelect = 4; //chip select pin for the MicroSD Card Adapter 
-int c=0;
 SFE_BMP180 pressure;
-File file; // file object that is used to read and write data
+File file;
 #define ALTITUDE 1655.0 // Altitude of SparkFun's HQ in Boulder, CO. in meters
 const int MPU_addr=0x68;
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 void setup() {
-  Serial.begin(9600); // start serial connection to print out debug messages and data
-   Wire.begin();
+  // Open serial communications and wait for port to open:
+  Serial.begin(9600);
+  Serial.print("Initializing SD card...");
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  
+  Serial.println("initialization done.");
+  Wire.begin();
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x6B);  // PWR_MGMT_1 register
   Wire.write(0);     // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
-  pinMode(chipSelect, OUTPUT); // chip select pin must be set to OUTPUT mode
-  if (!SD.begin(chipSelect)) { // Initialize SD card
-    Serial.println("Could not initialize SD card."); // if return value is false, something went wrong.
+  if (!SD.begin(4)) {
+    Serial.println("initialization failed!");
+    while (1);
   }
-  
-  if (SD.exists("file.txt")) { // if "file.txt" exists, fill will be deleted
-    Serial.println("File exists.");
-    if (SD.remove("file.txt") == true) {
-      Serial.println("Successfully removed file.");
-    } else {
-      Serial.println("Could not removed file.");
-    }
-  }
-   file = SD.open("file.txt", FILE_WRITE);
-  delay(1000);
-  Serial.println("REBOOT");
-  if (pressure.begin())
+if (pressure.begin())
     Serial.println("BMP180 init success");
   else
   {
     Serial.println("BMP180 init fail\n\n");
     while(1); // Pause forever.
   }
+
+  // open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+
+
+  // if the file opened okay, write to it:
+  
+
+  // re-open the file for reading:
 }
+
 void loop() {
+  // nothing happens after setup
    Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -126,28 +131,37 @@ void loop() {
 int uv=analogRead(A0);
 Serial.print("UV Radiation ");
 Serial.println(uv);
-delay(400);
-  delay(5000); 
 
 
-//CLOSE UV AND BMP
-  
+
+
+    file = SD.open("sat.csv", FILE_WRITE);
   if (file) {
-    file.print(AcX);file.print(",");file.print(AcY);file.print(",");file.print(AcZ);
-    file.print(GyX);file.print(",");file.print(GyY);file.print(",");file.print(GyZ);file.print(",");file.print(Tmp);
+    Serial.println("Wrote MPU constraints ");
+    file.print(AcX);file.print(",");file.print(AcY);file.print(",");file.print(AcZ);file.print(",");
+    file.print(GyX);file.print(",");file.print(GyY);file.print(",");file.print(GyZ);file.print(",");file.print(Tmp/340.00+36.53);
     file.print(",");file.print(P);file.print(",");file.print(p0);file.print(",");file.print(a);
     file.print(",");file.print(uv);
-    file.println(); // write number to file
-   // file.close(); // close file
-   
-    //file.close(); // close file
-    Serial.print("Wrote MPU constraints "); // debug output: show written number in serial monitor
-    
+    file.println();
+    file.close(); // close file 
+ 
+
   } else {
-    Serial.println("Could not open file (writing).");
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
   }
-  if(c==10)
-  file.close();
-  c++;
-  delay(500); // wait for 5000ms
+  /* file = SD.open("test.csv");
+  if (file) {
+  
+
+    // read from the file until there's nothing else in it:
+    while (file.available()) {
+      Serial.write(file.read());
+    }
+    // close the file:
+    file.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }*/
 }
